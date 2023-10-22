@@ -1,6 +1,8 @@
 use core::fmt;
 use std::ops;
 
+use rand::{rngs::ThreadRng, Rng};
+
 pub type Point3 = Vec3;
 
 #[derive(Debug, Clone, Copy)]
@@ -222,6 +224,14 @@ impl ops::DivAssign for Vec3 {
         self.z /= rhs.z;
     }
 }
+impl<T: VecConvert> ops::DivAssign<T> for Vec3
+{
+    fn div_assign(&mut self, rhs: T) {
+            self.x /= rhs.to_f32();
+            self.y /= rhs.to_f32();
+            self.z /= rhs.to_f32();
+    }
+}
 
 impl<T> ops::Index<usize> for Vec3<T>{
     type Output = T;
@@ -237,18 +247,21 @@ impl<T> ops::Index<usize> for Vec3<T>{
 }
 
 // Others
-impl Vec3{
+impl Vec3 {
     pub fn length(&self) -> f32{
         f32::sqrt(self.length_squared())
     }
+
     pub fn length_squared(&self) -> f32{
         self.x*self.x + self.y*self.y + self.z*self.z
     }
+
     pub fn dot(&self, other: &Self) -> f32 {
         self.x * other.x
             + self.y * other.y
             + self.z * other.z
     }
+
     pub fn cross(&self, other: &Self) -> Self {
         Vec3{
             x: self.y*other.z - self.z*other.y,
@@ -256,9 +269,44 @@ impl Vec3{
             z: self.x*other.y - self.y*other.x,
         }
     }
+
     pub fn norm(&self) -> Self {
         let length = self.length();
         self / length
+    }
+
+    fn random_in_unit_sphere() -> Vec3 {
+        loop {
+            let p = Vec3::rnd_range(-1., 1.);
+            if p.length_squared() < 1.0 {
+                return p
+            }
+        }
+    }
+    fn random_unit_vector() -> Vec3 {
+        Self::random_in_unit_sphere().norm()
+    }
+    pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
+        let on_unit_sphere = Self::random_unit_vector();
+        if on_unit_sphere.dot(normal) > 0.0 {
+            on_unit_sphere
+        } else {
+            -on_unit_sphere
+        }
+    }
+
+    pub fn rnd() -> Vec3 {
+        let a = rand::random();
+        let b = rand::random();
+        let c = rand::random();
+        Vec3::new(a, b, c)
+    }
+
+    pub fn rnd_range(min: f32, max: f32) -> Vec3 {
+        let a = rand::thread_rng().gen_range(min..max);
+        let b = rand::thread_rng().gen_range(min..max);
+        let c = rand::thread_rng().gen_range(min..max);
+        Vec3::new(a, b, c)
     }
 }
 
@@ -266,5 +314,13 @@ impl fmt::Display for Vec3{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {} {}", self.x, self.y, self.z)
     }
+}
+
+// loose conversions for vectors
+trait VecConvert {
+    fn to_f32(&self) -> f32;
+}
+impl VecConvert for u32 {
+    fn to_f32(&self) -> f32 { *self as f32 }
 }
 
