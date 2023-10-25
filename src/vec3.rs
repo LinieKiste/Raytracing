@@ -1,5 +1,5 @@
 use core::fmt;
-use std::ops;
+use std::ops::{self, Range};
 
 use rand::{rngs::ThreadRng, Rng};
 
@@ -16,51 +16,92 @@ impl<T> Vec3<T> {
     pub fn new(x: T, y: T, z: T) -> Self {
         Vec3 {x, y, z}
     }
+    pub fn map<U, F>(self, mut f: F) -> Vec3<U>
+    where
+        F: FnMut(T) -> U
+    {
+        let Vec3{x, y, z} = self;
+        Vec3 {
+            x: f(x),
+            y: f(y),
+            z: f(z)
+        }
+    }
+}
+
+macro_rules! impl_op_for_vec {
+    ($op:path, $out_type:path, $op_generic:path, $fname:ident) => {
+        impl<T> $op for Vec3<T>
+            where T: $out_type,
+        {
+            type Output = Vec3<T>;
+            fn $fname(self, rhs: Self) -> Self::Output {
+                Vec3 {
+                    x: self.x.$fname(rhs.x),
+                    y: self.y.$fname(rhs.y),
+                    z: self.z.$fname(rhs.z),
+                }
+            }
+        }
+        impl<T> $op for &Vec3<T>
+            where T: $out_type + Copy,
+        {
+            type Output = Vec3<T>;
+            fn $fname(self, rhs: Self) -> Self::Output {
+                Vec3 {
+                    x: self.x.$fname(rhs.x),
+                    y: self.y.$fname(rhs.y),
+                    z: self.z.$fname(rhs.z),
+                }
+            }
+        }
+        impl<T> $op_generic for Vec3<T>
+            where
+                T: $out_type + Copy
+                {
+                    type Output = Vec3<T>;
+
+                    fn $fname(self, rhs: T) -> Self::Output {
+                        Vec3 {
+                            x: self.x.$fname(rhs),
+                            y: self.y.$fname(rhs),
+                            z: self.z.$fname(rhs),
+                        }
+                    }
+                }
+        impl<T> $op_generic for &Vec3<T>
+            where
+                T: $out_type + Copy
+                {
+                    type Output = Vec3<T>;
+
+                    fn $fname(self, rhs: T) -> Self::Output {
+                        Vec3 {
+                            x: self.x.$fname(rhs),
+                            y: self.y.$fname(rhs),
+                            z: self.z.$fname(rhs),
+                        }
+                    }
+                }
+    };
+}
+
+macro_rules! impl_op_for_type {
+    ($op:path, $fname:ident, $type:ty) => {
+        impl $op for $type
+        {
+            type Output = Vec3<f32>;
+
+            fn $fname(self, rhs: Vec3<f32>) -> Self::Output {
+                rhs.$fname(self as f32)
+            }
+        }
+
+    };
 }
 
 // Minus
-impl<T> ops::Sub for Vec3<T>
-where
-    T: ops::Sub<Output = T>,
-{
-    type Output = Vec3<T>;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Vec3 {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-impl<T> ops::Sub for &Vec3<T>
-where
-    T: ops::Sub<Output = T> + Copy,
-{
-    type Output = Vec3<T>;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Vec3 {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-impl<T> ops::Sub<T> for Vec3<T>
-where
-    T: ops::Sub<Output = T> + Copy
-{
-    type Output = Vec3<T>;
-
-    fn sub(self, rhs: T) -> Self::Output {
-        Vec3 {
-            x: self.x - rhs,
-            y: self.y - rhs,
-            z: self.z - rhs,
-        }
-    }
-}
+impl_op_for_vec!(std::ops::Sub, std::ops::Sub<Output = T>, std::ops::Sub<T>, sub);
 
 impl ops::SubAssign for Vec3{
     fn sub_assign(&mut self, rhs: Self) {
@@ -82,32 +123,20 @@ impl ops::Neg for Vec3{
     }
 }
 
+impl ops::Neg for &Vec3{
+    type Output = Vec3;
+
+    fn neg(self) -> Self::Output {
+        Vec3 {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+        }
+    }
+}
+
 // Plus
-impl<T: ops::Add<Output = T>> ops::Add for Vec3<T>{
-    type Output = Vec3<T>;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Vec3 {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-            z: self.z + rhs.z,
-        }
-    }
-}
-impl<T> ops::Add<T> for Vec3<T>
-where
-    T: ops::Add<Output = T> + Copy
-{
-    type Output = Vec3<T>;
-
-    fn add(self, rhs: T) -> Self::Output {
-        Vec3 {
-            x: self.x + rhs,
-            y: self.y + rhs,
-            z: self.z + rhs,
-        }
-    }
-}
+impl_op_for_vec!(std::ops::Add, std::ops::Add<Output = T>, std::ops::Add<T>, add);
 
 impl ops::AddAssign for Vec3 {
     fn add_assign(&mut self, rhs: Self) {
@@ -118,53 +147,17 @@ impl ops::AddAssign for Vec3 {
 }
 
 // Multiplication & Division
-impl ops::Mul for Vec3 {
-    type Output = Vec3;
+impl_op_for_vec!(std::ops::Mul, std::ops::Mul<Output = T>, std::ops::Mul<T>, mul);
+impl_op_for_type!(std::ops::Mul<Vec3>, mul, f32);
+impl_op_for_type!(std::ops::Mul<Vec3>, mul, u32);
+impl_op_for_type!(std::ops::Mul<Vec3>, mul, usize);
 
-    fn mul(self, rhs: Self) -> Self::Output {
-        Vec3 {
-            x: self.x * rhs.x,
-            y: self.y * rhs.y,
-            z: self.z * rhs.z,
-        }
-    }
-}
-impl<T> ops::Mul<T> for Vec3<T> 
-where
-    T: ops::Mul<Output = T> + Copy
-{
-    type Output = Vec3<T>;
-
-    fn mul(self, rhs: T) -> Self::Output {
-        Vec3 {
-            x: self.x * rhs,
-            y: self.y * rhs,
-            z: self.z * rhs,
-        }
-    }
-}
-impl ops::Mul<Vec3<f32>> for f32
+impl ops::Mul<&Vec3<f32>> for f32
 {
     type Output = Vec3<f32>;
 
-    fn mul(self, rhs: Vec3<f32>) -> Self::Output {
+    fn mul(self, rhs: &Vec3<f32>) -> Self::Output {
         rhs * self
-    }
-}
-impl ops::Mul<Vec3<f32>> for u32
-{
-    type Output = Vec3<f32>;
-
-    fn mul(self, rhs: Vec3<f32>) -> Self::Output {
-        rhs * self as f32
-    }
-}
-impl ops::Mul<Vec3<f32>> for usize
-{
-    type Output = Vec3<f32>;
-
-    fn mul(self, rhs: Vec3<f32>) -> Self::Output {
-        rhs * self as f32
     }
 }
 impl ops::MulAssign for Vec3 {
@@ -175,48 +168,8 @@ impl ops::MulAssign for Vec3 {
     }
 }
 
-impl<T> ops::Div for Vec3<T>
-where
-    T: ops::Div<Output = T> + Copy
-{
-    type Output = Vec3<T>;
-    fn div(self, rhs: Self) -> Self::Output {
-        Vec3 {
-            x: self.x / rhs.x,
-            y: self.y / rhs.y,
-            z: self.z / rhs.z,
-        }
-    }
+impl_op_for_vec!(std::ops::Div, std::ops::Div<Output = T>, std::ops::Div<T>, div);
 
-}
-impl<T> ops::Div<T> for &Vec3<T>
-where
-    T: ops::Div<Output = T> + Copy
-{
-    type Output = Vec3<T>;
-
-    fn div(self, rhs: T) -> Self::Output {
-        Vec3 {
-            x: self.x / rhs,
-            y: self.y / rhs,
-            z: self.z / rhs,
-        }
-    }
-}
-impl<T> ops::Div<T> for Vec3<T>
-where
-    T: ops::Div<Output = T> + Copy
-{
-    type Output = Vec3<T>;
-
-    fn div(self, rhs: T) -> Self::Output {
-        Vec3 {
-            x: self.x / rhs,
-            y: self.y / rhs,
-            z: self.z / rhs,
-        }
-    }
-}
 impl ops::DivAssign for Vec3 {
     fn div_assign(&mut self, rhs: Self) {
         self.x /= rhs.x;
@@ -224,12 +177,12 @@ impl ops::DivAssign for Vec3 {
         self.z /= rhs.z;
     }
 }
-impl<T: VecConvert> ops::DivAssign<T> for Vec3
+impl ops::DivAssign<u32> for Vec3
 {
-    fn div_assign(&mut self, rhs: T) {
-            self.x /= rhs.to_f32();
-            self.y /= rhs.to_f32();
-            self.z /= rhs.to_f32();
+    fn div_assign(&mut self, rhs: u32) {
+            self.x /= rhs as f32;
+            self.y /= rhs as f32;
+            self.z /= rhs as f32;
     }
 }
 
@@ -255,6 +208,10 @@ impl Vec3 {
     pub fn length_squared(&self) -> f32{
         self.x*self.x + self.y*self.y + self.z*self.z
     }
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        return (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
+    }
 
     pub fn dot(&self, other: &Self) -> f32 {
         self.x * other.x
@@ -275,15 +232,38 @@ impl Vec3 {
         self / length
     }
 
+    pub fn reflect(self, n: &Vec3) -> Self {
+        self - 2.0*self.dot(n)*n
+    }
+    pub fn refract(&self, n: &Vec3, etai_over_etat: f32) -> Vec3 {
+        let cos_theta = (-self).dot(n).min(1.0);
+        let r_out_perp = etai_over_etat * (*self+cos_theta*n);
+        let r_out_parallel = -((1.0-r_out_perp.length_squared()).abs().sqrt()) * n;
+        r_out_perp + r_out_parallel
+    }
+
+    pub fn rnd() -> Vec3 {
+        let a = rand::random();
+        let b = rand::random();
+        let c = rand::random();
+        Vec3::new(a, b, c)
+    }
+
+    pub fn rnd_range(range: Range<f32>) -> Vec3 {
+        let a = rand::thread_rng().gen_range(range.clone());
+        let b = rand::thread_rng().gen_range(range.clone());
+        let c = rand::thread_rng().gen_range(range.clone());
+        Vec3::new(a, b, c)
+    }
     fn random_in_unit_sphere() -> Vec3 {
         loop {
-            let p = Vec3::rnd_range(-1., 1.);
+            let p = Self::rnd_range(-1.0..1.0);
             if p.length_squared() < 1.0 {
                 return p
             }
         }
     }
-    fn random_unit_vector() -> Vec3 {
+    pub fn random_unit_vector() -> Vec3 {
         Self::random_in_unit_sphere().norm()
     }
     pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
@@ -294,33 +274,16 @@ impl Vec3 {
             -on_unit_sphere
         }
     }
+}
 
-    pub fn rnd() -> Vec3 {
-        let a = rand::random();
-        let b = rand::random();
-        let c = rand::random();
-        Vec3::new(a, b, c)
-    }
 
-    pub fn rnd_range(min: f32, max: f32) -> Vec3 {
-        let a = rand::thread_rng().gen_range(min..max);
-        let b = rand::thread_rng().gen_range(min..max);
-        let c = rand::thread_rng().gen_range(min..max);
-        Vec3::new(a, b, c)
-    }
+pub fn rnd_f32() -> f32 {
+    rand::random()
 }
 
 impl fmt::Display for Vec3{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {} {}", self.x, self.y, self.z)
     }
-}
-
-// loose conversions for vectors
-trait VecConvert {
-    fn to_f32(&self) -> f32;
-}
-impl VecConvert for u32 {
-    fn to_f32(&self) -> f32 { *self as f32 }
 }
 
