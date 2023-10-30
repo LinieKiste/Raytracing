@@ -1,7 +1,8 @@
 use core::fmt;
 use std::ops::{self, Range};
+use std::iter::Sum;
 
-use rand::{rngs::ThreadRng, Rng};
+use rand::Rng;
 
 pub type Point3 = Vec3;
 
@@ -26,6 +27,14 @@ impl<T> Vec3<T> {
             y: f(y),
             z: f(z)
         }
+    }
+}
+
+impl Sum for Vec3 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Vec3::new(0.,0.,0.), |a, b| {
+            a+b
+        })
     }
 }
 

@@ -60,7 +60,7 @@ impl HittableList<Sphere> {
     }
 }
 
-impl<'a, T: Hittable + Sync + Send> Hittable for HittableList<T> {
+impl<'a, T: Hittable> Hittable for HittableList<T> {
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut closest_so_far = ray_t.max;
         let mut result = None;

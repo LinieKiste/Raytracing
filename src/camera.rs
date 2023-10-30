@@ -1,7 +1,11 @@
-use std::sync::{Arc, Mutex};
+use sdl2::{event::Event,
+    Sdl,
+    keyboard::Keycode,
+    pixels::PixelFormatEnum,
+    render::WindowCanvas
+};
 use crate::color::write_color;
 use std::f32::INFINITY;
-use std::io::Result;
 use image::{Rgb, ImageBuffer};
 use rand::Rng;
 use rayon::prelude::*;
@@ -13,9 +17,11 @@ use crate::vec3::{
 };
 use crate::{hittable::Hittable, color::Color};
 
+#[allow(dead_code)]
 pub struct Camera {
     aspect_ratio: f32,
-    image_width: u32,
+    pub image_width: u32,
+    pub image_height: u32,
     pub samples_per_pixel: u32,
     pub max_bounces: u32,
     pub fov: f32,
@@ -23,7 +29,6 @@ pub struct Camera {
     pub lookat: Point3,
     pub vup: Vec3,
 
-    image_height: u32,
     center: Point3,
     pixel00_loc: Point3,
     pixel_delta_u: Vec3,
@@ -82,31 +87,63 @@ impl Camera {
         }
     }
 
-    pub fn render<T: Hittable + Sync>(&mut self, world: T) -> Result<()> {
+    pub fn render<T: Hittable + Sync>(&mut self, world: T,
+                                      mut canvas: WindowCanvas, sdl_context: Sdl)
+        -> anyhow::Result<(), String> {
+        let mut event_pump = sdl_context.event_pump()?;
+        let texture_creator = canvas.texture_creator();
+        let mut texture = texture_creator
+            .create_texture_streaming(PixelFormatEnum::RGB24, self.image_width, self.image_height)
+            .map_err(|e| e.to_string())?;
 
-        let imgbuf: Arc<Mutex<ImageBuffer<Rgb<u8>, Vec<u8>>>>
-            = Arc::new(Mutex::new(ImageBuffer::new(self.image_width, self.image_height)));
-        for j in 0..self.image_height {
+        let mut imgbuf: ImageBuffer<Rgb<u8>, Vec<u8>>
+            = ImageBuffer::new(self.image_width, self.image_height);
+
+        'rendering: for j in 0..self.image_height {
             eprint!{"\rScanlines remaining: {} ", (self.image_height - j)};
 
-            (0..self.image_width).into_par_iter().for_each(|i| {
-                let mut pixel_color = Color::new(0.,0.,0.);
-                for _ in 0..self.samples_per_pixel {
-                    let r = self.get_ray(i, j);
-                    pixel_color += ray_color(&r, self.max_bounces, &world);
-                }
+            texture.with_lock(None, |buffer, pitch| {
+            for i in 0..self.image_width {
+                let mut pixel_color = (0..self.samples_per_pixel).into_par_iter()
+                    .map(|_| {
+                        let r = self.get_ray(i,j);
+                        ray_color(&r, self.max_bounces, &world)
+                    })
+                    .sum::<Vec3>();
                 pixel_color /= self.samples_per_pixel;
 
-                write_color(i, j, imgbuf.clone(), pixel_color);
-            })
+                write_color(i, j, &mut imgbuf, pixel_color);
+
+                Self::write_to_buffer(i, j, buffer, pitch, pixel_color);
+            }
+            })?;
+            canvas.clear();
+            canvas.copy(&texture, None, None).map_err(|e| e.to_string())?;
+            canvas.present();
+            for event in event_pump.poll_iter(){
+                match event {
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    } => break 'rendering,
+                    _ => {}
+                }
+            }
         }
-        imgbuf.lock().unwrap().save("image.png").unwrap();
+        imgbuf.save("image.png").unwrap();
         eprintln!("\r Done.                   ");
 
         Ok(())
     }
 
     // private
+    fn write_to_buffer(i: u32, j: u32, buffer: &mut [u8], pitch: usize, color: Color) {
+        let offset: usize = (j*pitch as u32 + i*3) as usize;
+        buffer[offset] = (256.*color.x) as u8;
+        buffer[offset + 1] = (256.*color.y) as u8;
+        buffer[offset + 2] = (256.*color.z) as u8;
+    }
     fn get_ray(&self, i: u32, j: u32) -> Ray {
         let pixel_center = self.pixel00_loc +
             (i*self.pixel_delta_u) + (j*self.pixel_delta_v);
