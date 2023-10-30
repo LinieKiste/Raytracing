@@ -1,10 +1,11 @@
+use sdl2::EventPump;
 use sdl2::{event::Event,
     Sdl,
     keyboard::Keycode,
     pixels::PixelFormatEnum,
     render::WindowCanvas
 };
-use crate::color::write_color;
+use crate::color::{write_color, linear_to_gamma};
 use std::f32::INFINITY;
 use image::{Rgb, ImageBuffer};
 use rand::Rng;
@@ -99,47 +100,56 @@ impl Camera {
         let mut imgbuf: ImageBuffer<Rgb<u8>, Vec<u8>>
             = ImageBuffer::new(self.image_width, self.image_height);
 
-        'rendering: for j in 0..self.image_height {
-            eprint!{"\rScanlines remaining: {} ", (self.image_height - j)};
+        'rendering: {
+            for j in 0..self.image_height {
+                eprint!{"\rScanlines remaining: {} ", (self.image_height - j)};
 
-            texture.with_lock(None, |buffer, pitch| {
-            for i in 0..self.image_width {
-                let mut pixel_color = (0..self.samples_per_pixel).into_par_iter()
-                    .map(|_| {
-                        let r = self.get_ray(i,j);
-                        ray_color(&r, self.max_bounces, &world)
-                    })
-                    .sum::<Vec3>();
-                pixel_color /= self.samples_per_pixel;
+                texture.with_lock(None, |buffer, pitch| {
+                    for i in 0..self.image_width {
+                        let mut pixel_color = (0..self.samples_per_pixel).into_par_iter()
+                            .map(|_| {
+                                let r = self.get_ray(i,j);
+                                ray_color(&r, self.max_bounces, &world)
+                            })
+                        .sum::<Vec3>();
+                        pixel_color /= self.samples_per_pixel;
 
-                write_color(i, j, &mut imgbuf, pixel_color);
+                        write_color(i, j, &mut imgbuf, pixel_color);
 
-                Self::write_to_buffer(i, j, buffer, pitch, pixel_color);
+                        Self::write_to_buffer(i, j, buffer, pitch, pixel_color);
+                    }
+                })?;
+                canvas.clear();
+                canvas.copy(&texture, None, None).map_err(|e| e.to_string())?;
+                canvas.present();
+                if Self::poll_quit(&mut event_pump) { break 'rendering }
+
             }
-            })?;
-            canvas.clear();
-            canvas.copy(&texture, None, None).map_err(|e| e.to_string())?;
-            canvas.present();
-            for event in event_pump.poll_iter(){
-                match event {
-                    Event::Quit { .. }
-                    | Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                        ..
-                    } => break 'rendering,
-                    _ => {}
-                }
-            }
+            imgbuf.save("image.png").unwrap();
+            eprintln!("\r Done.                   ");
+            loop { if Self::poll_quit(&mut event_pump) { break 'rendering } }
         }
-        imgbuf.save("image.png").unwrap();
-        eprintln!("\r Done.                   ");
 
         Ok(())
     }
 
     // private
+    fn poll_quit(event_pump: &mut EventPump) -> bool {
+        for event in event_pump.poll_iter(){
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown { keycode: Some(Keycode::Escape), .. }
+                | Event::KeyDown { keycode: Some(Keycode::Q), ..}
+                => return true,
+                _ => {}
+            }
+        }
+        return false;
+    }
     fn write_to_buffer(i: u32, j: u32, buffer: &mut [u8], pitch: usize, color: Color) {
+        let color = linear_to_gamma(color);
         let offset: usize = (j*pitch as u32 + i*3) as usize;
+
         buffer[offset] = (256.*color.x) as u8;
         buffer[offset + 1] = (256.*color.y) as u8;
         buffer[offset + 2] = (256.*color.z) as u8;

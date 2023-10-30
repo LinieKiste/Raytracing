@@ -21,9 +21,9 @@ fn main() -> anyhow::Result<(), String> {
     world.main_scene();
 
     let aspect_ratio = 16.0/9.0;
-    let image_width = 1200;
+    let image_width = 1600;
     let mut cam: Camera = Camera::new(aspect_ratio, image_width);
-    cam.samples_per_pixel = 32;
+    cam.samples_per_pixel = 512;
     cam.max_bounces = 10;
 
     // init SDL
@@ -34,7 +34,7 @@ fn main() -> anyhow::Result<(), String> {
         .window("Raytracer", cam.image_width, cam.image_height)
         .build()
         .map_err(|e| e.to_string())?;
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
 
     cam.render(world, canvas, sdl_context).map_err(|e| e.to_string())?;
 
