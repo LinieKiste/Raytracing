@@ -12,6 +12,8 @@ mod bvh;
 
 extern crate sdl2;
 
+use std::time::Instant;
+
 use camera::Camera;
 use ray::Ray;
 use hittable_list::HittableList;
@@ -40,7 +42,11 @@ fn main() -> anyhow::Result<(), String> {
         .map_err(|e| e.to_string())?;
     let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
 
+    println!("Starting render");
+    let start = Instant::now();
     cam.render(world, canvas, sdl_context).map_err(|e| e.to_string())?;
+    let duration = start.elapsed();
+    println!("Render took {:.2?}", duration);
 
     Ok(())
 }

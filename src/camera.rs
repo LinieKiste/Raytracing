@@ -122,7 +122,7 @@ impl Camera {
                 canvas.clear();
                 canvas.copy(&texture, None, None).map_err(|e| e.to_string())?;
                 canvas.present();
-                if Self::poll_quit(&mut event_pump) { break 'rendering }
+                if Self::poll_quit(&mut event_pump) { print!("\n"); break 'rendering }
 
             }
             imgbuf.save("image.png").unwrap();
