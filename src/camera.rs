@@ -88,8 +88,8 @@ impl Camera {
         }
     }
 
-    pub fn render<T: Hittable + Sync>(&mut self, world: T,
-                                      mut canvas: WindowCanvas, sdl_context: Sdl)
+    pub fn render<T: Hittable+Sync>(&mut self, world: T,
+                               mut canvas: WindowCanvas, sdl_context: Sdl)
         -> anyhow::Result<(), String> {
         let mut event_pump = sdl_context.event_pump()?;
         let texture_creator = canvas.texture_creator();

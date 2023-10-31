@@ -195,10 +195,10 @@ impl ops::DivAssign<u32> for Vec3
     }
 }
 
-impl<T> ops::Index<usize> for Vec3<T>{
+impl<T> ops::Index<u8> for Vec3<T>{
     type Output = T;
 
-    fn index(&self, index: usize) -> &Self::Output {
+    fn index(&self, index: u8) -> &Self::Output {
         match index {
             0 => &self.x,
             1 => &self.y,

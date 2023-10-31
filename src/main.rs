@@ -7,24 +7,28 @@ mod hittable_list;
 mod interval;
 mod camera;
 mod material;
+mod aabb;
+mod bvh;
 
 extern crate sdl2;
 
 use camera::Camera;
 use ray::Ray;
 use hittable_list::HittableList;
+use bvh::BvhNode;
 
 fn main() -> anyhow::Result<(), String> {
 
     // World
     let mut world = HittableList::new();
     world.main_scene();
+    let world = BvhNode::new(&mut world);
 
     let aspect_ratio = 16.0/9.0;
     let image_width = 1600;
     let mut cam: Camera = Camera::new(aspect_ratio, image_width);
-    cam.samples_per_pixel = 512;
-    cam.max_bounces = 10;
+    cam.samples_per_pixel = 64;
+    cam.max_bounces = 6;
 
     // init SDL
     let sdl_context = sdl2::init()?;

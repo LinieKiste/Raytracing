@@ -1,21 +1,27 @@
-use std::sync::Arc;
+use crate::{
+    hittable::*,
+    interval::Interval,
+    vec3::{Point3, Vec3},
+    ray::Ray,
+    material::Material,
+    aabb::AABB,
+};
 
-use crate::hittable::*;
-use crate::interval::Interval;
-use crate::vec3::Point3;
-use crate::ray::Ray;
-use crate::material::Material;
-
+#[derive(Clone, Copy)]
 pub struct Sphere {
     center: Point3,
     radius: f32,
-    material: Arc<dyn Material + Sync + Send>
+    material: Material,
+    bbox: AABB,
 }
 
 impl Sphere {
-    pub fn new(center: Point3, radius: f32, material: Arc<dyn Material+Sync+Send>) -> Self
+    pub fn new(center: Point3, radius: f32, material: Material) -> Self
     {
-        Sphere { center, radius, material}
+        let rvec = Vec3::new(radius, radius, radius);
+        let bbox = AABB::from_points(center-rvec, center+rvec);
+
+        Sphere { center, radius, material, bbox}
     }
 }
 
@@ -45,6 +51,10 @@ impl Hittable for Sphere {
         let new_rec = HitRecord::new(p, outward_normal, t, r, self.material.clone());
 
         Some(new_rec)
+    }
+
+    fn bounding_box(&self) -> AABB {
+        self.bbox
     }
 }
 

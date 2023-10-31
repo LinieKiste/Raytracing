@@ -14,6 +14,21 @@ impl Interval {
         Self { min, max }
     }
 
+    pub fn from_intervals(a: &Interval, b: &Interval) -> Self {
+        Interval { min: f32::min(a.min, b.min), max: f32::max(a.max, b.max) }
+    }
+
+    pub fn size(&self) -> f32 {
+        self.max - self.min
+    }
+
+    pub fn expand(mut self, delta: f32) -> Self {
+        let padding = delta/2.0;
+        self.min -= padding;
+        self.max -= padding;
+        self
+    }
+
     pub fn contains(&self, x: f32) -> bool {
         self.min <= x && x <= self.max
     }
