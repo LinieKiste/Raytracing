@@ -1,6 +1,7 @@
 use rand::{random, Rng};
 
 use crate::{
+    camera::Camera,
     ray::Ray,
     hittable::{
         Hittable, HitRecord,
@@ -9,14 +10,14 @@ use crate::{
     interval::Interval,
     color::Color,
     sphere::Sphere,
-    vec3::Point3,
+    vec3::{Point3, Vec3},
     material::Material::{
         self,
         Lambertian,
         Dielectric,
         Metal
     },
-    aabb::AABB,
+    aabb::AABB, quad::Quad,
 };
 
 pub struct HittableList<T: Hittable> {
@@ -37,7 +38,32 @@ impl HittableList<Primitive> {
 }
 
 impl HittableList<Primitive> {
-    pub fn main_scene(&mut self) {
+    pub fn quads(&mut self, cam: &mut Camera) {
+        // Materials
+        let left_red     = Lambertian(Color::new(1.0, 0.2, 0.2));
+        let back_green   = Lambertian(Color::new(0.2, 1.0, 0.2));
+        let right_blue   = Lambertian(Color::new(0.2, 0.2, 1.0));
+        let upper_orange = Lambertian(Color::new(1.0, 0.5, 0.0));
+        let lower_teal   = Lambertian(Color::new(0.2, 0.8, 0.8));
+
+        // Quads
+        let y_4 = Vec3::new(0., 4., 0.);
+        let tilt = Vec3::new(2., 4., 0.);
+        let x_4 = Vec3::new(4., 0., 0.);
+        let z_4 = Vec3::new(0., 0., 4.);
+        let z_neg_4 = Vec3::new(0., 0., -4.);
+        self.add(Quad::new(Point3::new(-3., -2., 5.), z_neg_4, y_4, left_red));
+        self.add(Quad::new(Point3::new(-2., -2., 0.), x_4, tilt, back_green));
+        self.add(Quad::new(Point3::new( 3., -2., 1.), z_4, y_4, right_blue));
+        self.add(Quad::new(Point3::new(-2.,  3., 1.), x_4, z_4, upper_orange));
+        self.add(Quad::new(Point3::new(-2., -3., 5.), x_4, z_neg_4, lower_teal));
+
+        cam.fov = 80.0;
+        cam.lookfrom = Point3::new(0., 0., 9.);
+        cam.lookat = Point3::new(0., 0., 0.);
+    }
+
+    pub fn random_spheres(&mut self, cam: &mut Camera) {
         let ground_material = Material::Lambertian(Color::new(0.5, 0.5, 0.5));
         self.add(Sphere::new(Point3::new(0., -1000., 0.), 1000., ground_material));
 
@@ -74,6 +100,10 @@ impl HittableList<Primitive> {
 
         let mat3 = Metal(Color::new(0.7, 0.6, 0.5), 0.0);
         self.add(Sphere::new(Point3::new(4.,1.,0.), 1.0, mat3));
+
+        cam.fov = 20.;
+        cam.lookfrom = Point3::new(13.0,2.0,3.);
+        cam.lookat   = Point3::new(0.,0.,0.);
     }
 }
 

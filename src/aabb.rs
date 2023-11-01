@@ -36,23 +36,13 @@ impl AABB {
         }
     }
 
-    pub fn hit(&self, r: &Ray, ray_t_in: Interval) -> bool {
-        let mut ray_t = ray_t_in;
-        for a in 0..3 {
-            let inv_d = 1./r.direction()[a];
-            let orig = r.origin()[a];
-            
-            let mut t0 = (self.axis(a).min - orig) * inv_d;
-            let mut t1 = (self.axis(a).max - orig) * inv_d;
+    pub fn pad(self) -> Self {
+        let delta = 0.0001;
+        let new_x = if self.x.size() >= delta {self.x} else {self.x.expand(delta)};
+        let new_y = if self.y.size() >= delta {self.y} else {self.y.expand(delta)};
+        let new_z = if self.z.size() >= delta {self.z} else {self.z.expand(delta)};
 
-            if inv_d < 0.0 { (t0, t1) = (t1, t0) }
-
-            if t0 > ray_t.min { ray_t.min = t0; }
-            if t1 < ray_t.max { ray_t.max = t1; }
-
-            if ray_t.max <= ray_t.min { return false; }
-        }
-        true
+        AABB::new(new_x, new_y, new_z)
     }
 }
 

@@ -25,7 +25,7 @@ impl Interval {
     pub fn expand(mut self, delta: f32) -> Self {
         let padding = delta/2.0;
         self.min -= padding;
-        self.max -= padding;
+        self.max += padding;
         self
     }
 

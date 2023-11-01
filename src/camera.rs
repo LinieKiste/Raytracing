@@ -1,3 +1,4 @@
+use anyhow::{Result, anyhow};
 use sdl2::EventPump;
 use sdl2::{event::Event,
     Sdl,
@@ -9,6 +10,7 @@ use crate::color::{write_color, linear_to_gamma};
 use std::f32::INFINITY;
 use image::{Rgb, ImageBuffer};
 use rand::Rng;
+use std::time::Instant;
 use rayon::prelude::*;
 
 use crate::Ray;
@@ -19,6 +21,7 @@ use crate::vec3::{
 use crate::{hittable::Hittable, color::Color};
 
 #[allow(dead_code)]
+#[derive(Default)]
 pub struct Camera {
     aspect_ratio: f32,
     pub image_width: u32,
@@ -46,59 +49,67 @@ impl Camera {
         let samples_per_pixel = 16;
         let max_bounces = 10;
 
-        let fov: f32 = 20.;
-        let lookfrom = Point3::new(13.0,2.0,3.);
+        let fov: f32 = 80.;
+        let lookfrom = Point3::new(9.0,0.0,0.);
         let lookat   = Point3::new(0.,0.,0.);
         let vup      =   Vec3::new(0.,1.,0.);
 
-        // Camera
-        let focal_length = (lookfrom - lookat).length();
-        let theta = fov.to_radians();
+        Camera {
+            aspect_ratio, image_width,
+            image_height,
+            samples_per_pixel,
+            max_bounces, fov, lookfrom, lookat,
+            vup, ..Default::default()
+        }
+    }
+    
+    fn update(&mut self) {
+        let focal_length = (self.lookfrom - self.lookat).length();
+        let theta = self.fov.to_radians();
         let h = (theta/2.0).tan();
         let viewport_height = 2.0 * h * focal_length;
         let viewport_width = viewport_height *
-            (image_width as f32/image_height as f32);
-        let center = lookfrom;
+            (self.image_width as f32/self.image_height as f32);
+        self.center = self.lookfrom;
 
         // base vectors
-        let w = (lookfrom - lookat).norm();
-        let u = vup.cross(&w).norm();
-        let v = w.cross(&u);
+        self.w = (self.lookfrom - self.lookat).norm();
+        self.u = self.vup.cross(&self.w).norm();
+        self.v = self.w.cross(&self.u);
 
         // Viewport vectors
-        let viewport_u = viewport_width * u; // horizontal viewport edge
-        let viewport_v = viewport_height * -v; // vertical viewport edge
+        let viewport_u = viewport_width * self.u; // horizontal viewport edge
+        let viewport_v = viewport_height * -self.v; // vertical viewport edge
 
         // Horizontal and vertical delta between pixels
-        let pixel_delta_u = viewport_u / image_width as f32;
-        let pixel_delta_v = viewport_v / image_height as f32;
+        self.pixel_delta_u = viewport_u / self.image_width as f32;
+        self.pixel_delta_v = viewport_v / self.image_height as f32;
 
         // Upper left pixel
-        let viewport_upper_left = center -
-            focal_length*w - viewport_u/2. - viewport_v/2.;
-        let pixel00_loc = viewport_upper_left +
-            0.5 * (pixel_delta_u+pixel_delta_v);
-
-        Camera {
-            aspect_ratio, image_width,
-            image_height, center, pixel00_loc,
-            pixel_delta_u, pixel_delta_v, samples_per_pixel,
-            max_bounces, fov, lookfrom, lookat,
-            vup, u, v, w,
-        }
+        let viewport_upper_left = self.center -
+            focal_length*self.w - viewport_u/2. - viewport_v/2.;
+        self.pixel00_loc = viewport_upper_left +
+            0.5 * (self.pixel_delta_u+self.pixel_delta_v);
     }
 
     pub fn render<T: Hittable+Sync>(&mut self, world: T,
                                mut canvas: WindowCanvas, sdl_context: Sdl)
-        -> anyhow::Result<(), String> {
-        let mut event_pump = sdl_context.event_pump()?;
+        -> Result<()> {
+        self.update();
+
+        let mut event_pump = sdl_context
+            .event_pump()
+            .map_err(|e| anyhow!(e))?;
         let texture_creator = canvas.texture_creator();
         let mut texture = texture_creator
-            .create_texture_streaming(PixelFormatEnum::RGB24, self.image_width, self.image_height)
-            .map_err(|e| e.to_string())?;
+            .create_texture_streaming(PixelFormatEnum::RGB24, self.image_width, self.image_height)?;
 
         let mut imgbuf: ImageBuffer<Rgb<u8>, Vec<u8>>
             = ImageBuffer::new(self.image_width, self.image_height);
+
+        // Measure time
+        println!("Starting render");
+        let start = Instant::now();
 
         'rendering: {
             for j in 0..self.image_height {
@@ -118,16 +129,20 @@ impl Camera {
 
                         Self::write_to_buffer(i, j, buffer, pitch, pixel_color);
                     }
-                })?;
+                })
+                .map_err(|e| anyhow!(e))?;
                 canvas.clear();
-                canvas.copy(&texture, None, None).map_err(|e| e.to_string())?;
+                canvas.copy(&texture, None, None).map_err(|e| anyhow!(e))?;
                 canvas.present();
                 if Self::poll_quit(&mut event_pump) { print!("\n"); break 'rendering }
 
             }
-            imgbuf.save("image.png").unwrap();
             eprintln!("\r Done.                   ");
-            loop { if Self::poll_quit(&mut event_pump) { break 'rendering } }
+            let duration = start.elapsed();
+            println!("Render took {:.2?}", duration);
+
+            imgbuf.save("image.png").unwrap();
+            loop { if Self::poll_quit(&mut event_pump) { break } }
         }
 
         Ok(())

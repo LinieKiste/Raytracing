@@ -1,23 +1,23 @@
-use std::{
-    cmp::Ordering,
-    sync::Arc,
-};
+use std::sync::Arc;
+use std::cmp::Ordering;
 
 use rand::Rng;
 
 use crate::{
-    ray::Ray,
+    ray::{Ray, Intersect},
     interval::Interval,
     hittable::{Hittable, HitRecord, Primitive},
     hittable_list::HittableList,
-    aabb::AABB,
+    aabb::AABB, vec3::Vec3,
 };
 
-type ThreadSafeHittable = Arc<dyn Hittable + Sync + Send>;
-pub struct BvhNode {
-    left:  ThreadSafeHittable,
-    right: ThreadSafeHittable,
-    bbox: AABB,
+pub enum BvhNode {
+    Leaf(Primitive),
+    Node {
+        left:  Arc<BvhNode>,
+        right: Arc<BvhNode>,
+        bbox: AABB,
+    }
 }
 
 impl BvhNode {
@@ -26,6 +26,7 @@ impl BvhNode {
     }
 
     pub fn from_vec(list: &mut [Primitive]) -> Self {
+        use BvhNode::*;
         let start = 0;
         let end = list.len();
 
@@ -38,16 +39,16 @@ impl BvhNode {
 
         let object_span = end - start;
 
-        let (left, right): (ThreadSafeHittable, ThreadSafeHittable) = match object_span {
-            1 => (Arc::new(list[start]), Arc::new(list[start])),
+        let (left, right): (BvhNode, BvhNode) = match object_span {
+            1 => (Leaf(list[start]), Leaf(list[start])),
             2 => if comparator(&list[start], &list[start+1]).is_lt() {
                     let left = list[start];
                     let right = list[start+1];
-                    (Arc::new(left), Arc::new(right))
+                    (Leaf(left), Leaf(right))
                 } else {
                     let left = list[start+1];
                     let right = list[start];
-                    (Arc::new(left), Arc::new(right))
+                    (Leaf(left), Leaf(right))
                 },
             _ => {
                 list.sort_by(comparator);
@@ -55,11 +56,15 @@ impl BvhNode {
                 let mid = start + object_span/2;
                 let left = Self::from_vec(&mut list[start..mid]);
                 let right = Self::from_vec(&mut list[mid..end]);
-                (Arc::new(left), Arc::new(right))
+                (left, right)
             }
         };
         let bbox = AABB::from_aabbs(&left.bounding_box(), &right.bounding_box());
-        BvhNode { left, right, bbox }
+        Node {
+            left: Arc::new(left),
+            right: Arc::new(right),
+            bbox
+        }
     }
 
     fn box_compare(a: &Primitive, b: &Primitive, axis_index: u8) -> Ordering {
@@ -85,20 +90,30 @@ impl BvhNode {
 
 impl Hittable for BvhNode {
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
-        if !self.bbox.hit(r, ray_t) { return None }
+        let bbox = self.bounding_box();
 
-        let hit_left = self.left.hit(r, ray_t);
-        let new_max = if let Some(hl) = &hit_left { hl.t } else {ray_t.max};
-        let hit_right = self.right.hit(r, Interval::new(ray_t.min, new_max));
+        if !r.intersects(&bbox, ray_t) { return None }
 
-        match hit_right {
-            Some(_) => hit_right,
-            None => hit_left,
+        match self {
+            BvhNode::Node { left, right, .. } => {
+                let hit_left = left.hit(r, ray_t);
+                let new_max = if let Some(hl) = &hit_left { hl.t } else {ray_t.max};
+                let hit_right = right.hit(r, Interval::new(ray_t.min, new_max));
+
+                match hit_right {
+                    Some(_) => hit_right,
+                    None => hit_left,
+                }
+            },
+            BvhNode::Leaf(l) => l.hit(r, ray_t)
         }
     }
 
-    fn bounding_box(&self) -> crate::aabb::AABB {
-        self.bbox
+    fn bounding_box(&self) -> AABB {
+        match *self {
+            Self::Leaf(l) => l.bounding_box(),
+            Self::Node{ bbox, ..} => bbox,
+        }
     }
 }
 

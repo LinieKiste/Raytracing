@@ -6,7 +6,7 @@ use rand::Rng;
 
 pub type Point3 = Vec3;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Vec3<T=f32> {
     pub x: T,
     pub y: T,
