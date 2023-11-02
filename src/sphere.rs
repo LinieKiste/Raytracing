@@ -48,7 +48,7 @@ impl Hittable for Sphere {
         let t = root;
         let p = r.at(root);
         let outward_normal = (p - self.center)/self.radius;
-        let new_rec = HitRecord::new(p, outward_normal, t, r, self.material.clone());
+        let new_rec = HitRecord::new(p, outward_normal, t, r, self.material);
 
         Some(new_rec)
     }

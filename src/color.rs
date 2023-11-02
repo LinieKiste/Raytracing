@@ -11,7 +11,7 @@ pub fn linear_to_gamma(color: Color) -> Color {
 pub fn write_color(i: u32, j: u32, buf: &mut ImageBuffer<image::Rgb<u8>, Vec<u8>>, color: Color) {
     let color = linear_to_gamma(color);
 
-    let pixel = buf.get_pixel_mut(i as u32, j as u32);
+    let pixel = buf.get_pixel_mut(i, j);
     *pixel = image::Rgb([
                         (256.*color.x) as u8,
                         (256.*color.y) as u8,

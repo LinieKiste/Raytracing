@@ -3,7 +3,7 @@ use crate::{
     vec3::{Point3, Vec3},
     interval::Interval,
     material::Material,
-    aabb::AABB, sphere::Sphere, quad::Quad,
+    aabb::AABB, sphere::Sphere, quad::Quad, triangle::Triangle,
 };
 
 pub struct HitRecord {
@@ -18,6 +18,7 @@ pub struct HitRecord {
 pub enum Primitive {
     Sphere(Sphere),
     Quad(Quad),
+    Triangle(Triangle),
 }
 
 impl HitRecord {
@@ -48,6 +49,7 @@ impl Hittable for Primitive {
         match self {
             Sphere(sp) => sp.hit(r, ray_t),
             Quad(q) => q.hit(r, ray_t),
+            Triangle(t) => t.hit(r, ray_t),
         }
     }
 
@@ -55,6 +57,7 @@ impl Hittable for Primitive {
         match self {
             Sphere(sp) => sp.bounding_box(),
             Quad(q) => q.bounding_box(),
+            Triangle(t) => t.bounding_box(),
         }
     }
 }
@@ -67,6 +70,11 @@ impl From<Sphere> for Primitive {
 impl From<Quad> for Primitive {
     fn from(value: Quad) -> Self {
         Quad(value)
+    }
+}
+impl From<Triangle> for Primitive {
+    fn from(value: Triangle) -> Self {
+        Triangle(value)
     }
 }
 

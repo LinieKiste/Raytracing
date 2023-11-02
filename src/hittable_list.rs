@@ -17,7 +17,7 @@ use crate::{
         Dielectric,
         Metal
     },
-    aabb::AABB, quad::Quad,
+    aabb::AABB, quad::Quad, triangle::Triangle,
 };
 
 pub struct HittableList<T: Hittable> {
@@ -48,13 +48,13 @@ impl HittableList<Primitive> {
 
         // Quads
         let y_4 = Vec3::new(0., 4., 0.);
-        let tilt = Vec3::new(2., 4., 0.);
+        let tilt = Vec3::new(-2., 4., 0.);
         let x_4 = Vec3::new(4., 0., 0.);
         let z_4 = Vec3::new(0., 0., 4.);
         let z_neg_4 = Vec3::new(0., 0., -4.);
         self.add(Quad::new(Point3::new(-3., -2., 5.), z_neg_4, y_4, left_red));
-        self.add(Quad::new(Point3::new(-2., -2., 0.), x_4, tilt, back_green));
-        self.add(Quad::new(Point3::new( 3., -2., 1.), z_4, y_4, right_blue));
+        self.add(Triangle::new(Point3::new(-2., -2., 0.), x_4, tilt, back_green));
+        self.add(Triangle::new(Point3::new( 3., -2., 1.), z_4, y_4, right_blue));
         self.add(Quad::new(Point3::new(-2.,  3., 1.), x_4, z_4, upper_orange));
         self.add(Quad::new(Point3::new(-2., -3., 5.), x_4, z_neg_4, lower_teal));
 

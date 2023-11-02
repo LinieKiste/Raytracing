@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy)]
-pub struct Quad {
+pub struct Triangle {
     q: Point3,
     u: Vec3,
     v: Vec3,
@@ -19,7 +19,7 @@ pub struct Quad {
     bbox: AABB
 }
 
-impl Quad {
+impl Triangle {
     pub fn new(q: Point3, u: Vec3, v: Vec3, mat: Material) -> Self {
         let bbox = AABB::from_points(q, q+u+v).pad();
         let n = u.cross(&v);
@@ -27,15 +27,15 @@ impl Quad {
         let d = normal.dot(&q);
         let w = n / n.dot(&n);
 
-        Quad { q, u, v, normal, d, mat, bbox, w }
+        Triangle { q, u, v, normal, d, mat, bbox, w }
     }
 
     fn valid_uv_coords(u: f32, v: f32) -> bool {
-        (0.0..1.0).contains(&u) && (0.0..1.0).contains(&v)
+        u + v < 1.0
     }
 }
 
-impl Hittable for Quad {
+impl Hittable for Triangle {
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let denom = self.normal.dot(&r.direction());
 
@@ -51,7 +51,7 @@ impl Hittable for Quad {
         let alpha = self.w.dot(&planar_hitpt_vector.cross(&self.v));
         let beta = self.w.dot(&self.u.cross(&planar_hitpt_vector));
 
-        if !Quad::valid_uv_coords(alpha, beta) {
+        if !Triangle::valid_uv_coords(alpha, beta) {
             None
         } else {
             Some(HitRecord::new(intersection, self.normal, t, r, self.mat))

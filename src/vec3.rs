@@ -219,7 +219,7 @@ impl Vec3 {
     }
     pub fn near_zero(&self) -> bool {
         let s = 1e-8;
-        return (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
+        (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
     }
 
     pub fn dot(&self, other: &Self) -> f32 {

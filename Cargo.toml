@@ -11,7 +11,12 @@ image = "0.24"
 rand = "0.8"
 sdl2 = "0.35"
 anyhow = "1.0"
+nalgebra = "0.32"
 
-[profile.release]
-debug = 1
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
+[[bench]]
+name = "benchmark"
+harness = false
 
