@@ -2,7 +2,6 @@ pub mod camera;
 pub mod bvh;
 pub mod ray;
 pub mod hittable_list;
-mod vec3;
 mod color;
 mod sphere;
 mod hittable;
@@ -11,6 +10,7 @@ mod material;
 mod aabb;
 mod quad;
 mod triangle;
+mod vec3;
 
 extern crate sdl2;
 

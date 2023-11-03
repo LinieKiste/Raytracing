@@ -23,7 +23,7 @@ impl Quad {
     pub fn new(q: Point3, u: Vec3, v: Vec3, mat: Material) -> Self {
         let bbox = AABB::from_points(q, q+u+v).pad();
         let n = u.cross(&v);
-        let normal = n.norm();
+        let normal = n.normalize();
         let d = normal.dot(&q);
         let w = n / n.dot(&n);
 

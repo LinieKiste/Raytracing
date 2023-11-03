@@ -73,14 +73,14 @@ impl HittableList<Primitive> {
                 let center =Point3::new(a as f32 + 0.9*random::<f32>(), 0.2,
                     b as f32+0.9*random::<f32>());
 
-                if (center-Point3::new(4., 0.2, 0.)).length() > 0.9 {
+                if (center-Point3::new(4., 0.2, 0.)).norm() > 0.9 {
                     let sphere_material = if choose_mat < 0.8 {
                         // diffuse
-                        let albedo = Color::rnd() * Color::rnd();
+                        let albedo = Color::new_random().component_mul(&Color::new_random());
                         Lambertian(albedo)
                     } else if choose_mat < 0.95 {
                         // Metal
-                        let albedo = Color::rnd_range(0.5..1.0);
+                        let albedo = (Color::new_random()/2.0).add_scalar(0.5);
                         let fuzz = rand::thread_rng().gen_range(0.0..0.5);
                         Metal(albedo, fuzz)
                     } else {

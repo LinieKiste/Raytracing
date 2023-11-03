@@ -8,7 +8,7 @@ use crate::{
     interval::Interval,
     hittable::{Hittable, HitRecord, Primitive},
     hittable_list::HittableList,
-    aabb::AABB, vec3::Vec3,
+    aabb::AABB,
 };
 
 pub enum BvhNode {
@@ -67,7 +67,7 @@ impl BvhNode {
         }
     }
 
-    fn box_compare(a: &Primitive, b: &Primitive, axis_index: u8) -> Ordering {
+    fn box_compare(a: &Primitive, b: &Primitive, axis_index: usize) -> Ordering {
         if a.bounding_box().axis(axis_index).min < b.bounding_box().axis(axis_index).min {
             Ordering::Less
         } else {

@@ -69,7 +69,7 @@ impl Camera {
     }
     
     fn update(&mut self) {
-        let focal_length = (self.lookfrom - self.lookat).length();
+        let focal_length = (self.lookfrom - self.lookat).norm();
         let theta = self.fov.to_radians();
         let h = (theta/2.0).tan();
         let viewport_height = 2.0 * h * focal_length;
@@ -78,8 +78,8 @@ impl Camera {
         self.center = self.lookfrom;
 
         // base vectors
-        self.w = (self.lookfrom - self.lookat).norm();
-        self.u = self.vup.cross(&self.w).norm();
+        self.w = (self.lookfrom - self.lookat).normalize();
+        self.u = self.vup.cross(&self.w).normalize();
         self.v = self.w.cross(&self.u);
 
         // Viewport vectors
@@ -138,7 +138,7 @@ impl Camera {
                         ray_color(&r, self.max_bounces, world)
                     })
                 .sum::<Vec3>();
-                pixel_color /= self.samples_per_pixel;
+                pixel_color /= self.samples_per_pixel as f32;
 
                 write_color(i, j, &mut self.imgbuf, pixel_color);
             }
@@ -164,7 +164,7 @@ impl Camera {
                                 ray_color(&r, self.max_bounces, world)
                             })
                         .sum::<Vec3>();
-                        pixel_color /= self.samples_per_pixel;
+                        pixel_color /= self.samples_per_pixel as f32;
 
                         write_color(i, j, &mut self.imgbuf, pixel_color);
 
@@ -220,7 +220,7 @@ impl Camera {
     }
     fn get_ray(&self, i: u32, j: u32) -> Ray {
         let pixel_center = self.pixel00_loc +
-            (i*self.pixel_delta_u) + (j*self.pixel_delta_v);
+            (i as f32*self.pixel_delta_u) + (j as f32*self.pixel_delta_v);
         let pixel_sample = pixel_center + self.sample_loc();
 
         let ray_origin = self.center;
@@ -243,13 +243,13 @@ fn ray_color<T: Hittable + Sync>(r: &Ray, depth: u32, world: &T) -> Color {
 
     if let Some(hit) = world.hit(r, Interval::new(0.001, INFINITY)) {
         if let (attenuation, Some(scattered)) = hit.material.scatter(r, &hit) {
-            return attenuation * ray_color(&scattered, depth-1, world)
+            return attenuation.component_mul(&ray_color(&scattered, depth-1, world));
         }
 
         return Color::new(0.,0.,0.);
     }
 
-    let unit_direction = r.direction().norm();
+    let unit_direction = r.direction().normalize();
     let a = 0.5*(unit_direction.y + 1.0);
 
     (1.0-a)*Color::new(1.,1.,1.) + a*Color::new(0.5,0.7,1.0)

@@ -1,4 +1,7 @@
-use crate::{vec3::{Vec3, Point3}, interval::Interval, aabb::AABB};
+use crate::{
+    interval::Interval, aabb::AABB,
+    vec3::{Vec3, Point3},
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {

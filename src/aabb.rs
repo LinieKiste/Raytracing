@@ -1,4 +1,4 @@
-use crate::{interval::Interval, vec3::Point3, ray::Ray};
+use crate::{interval::Interval, vec3::Point3};
 
 #[derive(Default, Clone, Copy)]
 pub struct AABB {
@@ -28,7 +28,7 @@ impl AABB {
         Self { x, y, z }
     }
 
-    pub fn axis(&self, n: u8) -> Interval {
+    pub fn axis(&self, n: usize) -> Interval {
         match n {
             1 => self.y,
             2 => self.z,

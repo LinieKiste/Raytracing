@@ -1,8 +1,7 @@
 use image::ImageBuffer;
-
 use crate::vec3;
 
-pub type Color<T=f32> = vec3::Vec3<T>;
+pub type Color = vec3::Vec3;
 
 pub fn linear_to_gamma(color: Color) -> Color {
     color.map(f32::sqrt)
