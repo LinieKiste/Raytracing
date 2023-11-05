@@ -3,11 +3,12 @@ use crate::{
     ray::Ray,
     hittable::HitRecord,
     color::Color,
+    texture::Texture,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum Material {
-    Lambertian(Color),
+    Lambertian(Texture),
     Metal(Color, f32),
     Dielectric(f32),
 
@@ -17,19 +18,19 @@ impl Material {
     pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> (Color, Option<Ray>) {
         use Material::*;
         match self {
-            Lambertian(color) => Self::scatter_lambertian(color, rec),
+            Lambertian(texture) => Self::scatter_lambertian(texture, rec),
             Metal(color, fuzz) => Self::scatter_metal(color, fuzz, r_in, rec),
             Dielectric(ir) => Self::scatter_dielectric(ir, r_in, rec),
         }
     }
 
-    fn scatter_lambertian(albedo: &Color, rec: &HitRecord) -> (Color, Option<Ray>) {
+    fn scatter_lambertian(albedo: &Texture, rec: &HitRecord) -> (Color, Option<Ray>) {
         let mut scatter_direction = rec.normal + Vec3::new_random();
         if scatter_direction.relative_eq(&Vec3::zeros(), 0.001, 0.1) {
             scatter_direction = rec.normal;
         }
         let scattered = Ray::new(rec.p, scatter_direction);
-        (*albedo, Some(scattered))
+        (albedo.value(rec.uv, rec.p), Some(scattered))
     }
     fn scatter_metal(albedo: &Color, fuzz: &f32, r_in: &Ray, rec: &HitRecord) -> (Color, Option<Ray>) {
         let reflected = reflect(r_in.direction().normalize(), &rec.normal);
@@ -64,6 +65,18 @@ impl Material {
         let mut r0 = (1.-ref_idx) / (1.+ref_idx);
         r0 = r0*r0;
         r0 + (1.-r0)*(1.-cosine).powf(5.)
+    }
+}
+
+impl From<Texture> for Material {
+    fn from(value: Texture) -> Self {
+        Self::Lambertian(value)
+    }
+}
+
+impl From<&Texture> for Material {
+    fn from(value: &Texture) -> Self {
+        Self::Lambertian(value.clone())
     }
 }
 

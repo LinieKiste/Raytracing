@@ -132,7 +132,7 @@ impl Camera {
             eprint!{"\rScanlines remaining: {} ", (self.image_height - j)};
 
             for i in 0..self.image_width {
-                let mut pixel_color = (0..self.samples_per_pixel).into_par_iter()
+                let mut pixel_color = (0..self.samples_per_pixel).into_iter()
                     .map(|_| {
                         let r = self.get_ray(i,j);
                         ray_color(&r, self.max_bounces, world)
@@ -158,7 +158,7 @@ impl Camera {
 
                 texture.with_lock(None, |buffer, pitch| {
                     for i in 0..self.image_width {
-                        let mut pixel_color = (0..self.samples_per_pixel).into_par_iter()
+                        let mut pixel_color = (0..self.samples_per_pixel).into_iter()
                             .map(|_| {
                                 let r = self.get_ray(i,j);
                                 ray_color(&r, self.max_bounces, world)

@@ -9,12 +9,13 @@ use crate::{
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
+    pub material: Material,
     pub t: f32,
+    pub uv: (f32, f32),
     pub front_face: bool,
-    pub material: Material
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum Primitive {
     Sphere(Sphere),
     Quad(Quad),
@@ -23,7 +24,7 @@ pub enum Primitive {
 
 impl HitRecord {
     pub fn new(p: Point3, outward_normal: Vec3, t: f32, r: &Ray,
-               material: Material) -> Self {
+               material: Material, uv: (f32, f32)) -> Self {
         let front_face = r.direction().dot(&outward_normal) < 0.;
         let normal = if front_face { outward_normal } else { -outward_normal };
 
@@ -33,6 +34,7 @@ impl HitRecord {
             t,
             front_face,
             material,
+            uv,
         }
     }
 }

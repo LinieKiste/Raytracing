@@ -7,7 +7,7 @@ use crate::{
     vec3::{Vec3, Point3},
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Triangle {
     q: Point3,
     u: Vec3,
@@ -55,7 +55,7 @@ impl Hittable for Triangle {
         if !Triangle::valid_uv_coords(alpha, beta) {
             None
         } else {
-            Some(HitRecord::new(intersection, self.normal, t, r, self.mat))
+            Some(HitRecord::new(intersection, self.normal, t, r, self.mat.clone(), (alpha, beta)))
         }
     }
 

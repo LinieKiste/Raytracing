@@ -40,14 +40,14 @@ impl BvhNode {
         let object_span = end - start;
 
         let (left, right): (BvhNode, BvhNode) = match object_span {
-            1 => (Leaf(list[start]), Leaf(list[start])),
+            1 => (Leaf(list[start].clone()), Leaf(list[start].clone())),
             2 => if comparator(&list[start], &list[start+1]).is_lt() {
-                    let left = list[start];
-                    let right = list[start+1];
+                    let left = list[start].clone();
+                    let right = list[start+1].clone();
                     (Leaf(left), Leaf(right))
                 } else {
-                    let left = list[start+1];
-                    let right = list[start];
+                    let left = list[start+1].clone();
+                    let right = list[start].clone();
                     (Leaf(left), Leaf(right))
                 },
             _ => {
@@ -110,9 +110,9 @@ impl Hittable for BvhNode {
     }
 
     fn bounding_box(&self) -> AABB {
-        match *self {
+        match self {
             Self::Leaf(l) => l.bounding_box(),
-            Self::Node{ bbox, ..} => bbox,
+            Self::Node{ bbox, ..} => *bbox,
         }
     }
 }

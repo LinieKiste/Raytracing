@@ -6,7 +6,7 @@ use crate::{
     aabb::AABB,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Quad {
     q: Point3,
     u: Vec3,
@@ -54,7 +54,7 @@ impl Hittable for Quad {
         if !Quad::valid_uv_coords(alpha, beta) {
             None
         } else {
-            Some(HitRecord::new(intersection, self.normal, t, r, self.mat))
+            Some(HitRecord::new(intersection, self.normal, t, r, self.mat.clone(), (alpha, beta)))
         }
     }
 

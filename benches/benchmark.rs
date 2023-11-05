@@ -33,6 +33,12 @@ fn quads_and_spheres(c: &mut Criterion) {
         let world = BvhNode::new(&mut world);
         let _ = cam.render_no_preview(&world);
     }));
+
+    let mut world = HittableList::new();
+    world.earth(&mut cam);
+    c.bench_function("Earth", |b| b.iter(||{
+        let _ = cam.render_no_preview(&world);
+    }));
 }
 
 criterion_group!(benches, quads_and_spheres);

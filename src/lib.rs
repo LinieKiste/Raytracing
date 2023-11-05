@@ -11,6 +11,7 @@ mod aabb;
 mod quad;
 mod triangle;
 mod vec3;
+mod texture;
 
 extern crate sdl2;
 
