@@ -27,6 +27,13 @@ impl AABB {
 
         Self { x, y, z }
     }
+    pub fn from_3_points(a: Point3, b: Point3, c: Point3) -> Self {
+        let x = Interval::new(a.x.min(b.x).min(c.x), a.x.max(b.x).max(c.x));
+        let y = Interval::new(a.y.min(b.y).min(c.y), a.y.max(b.y).max(c.y));
+        let z = Interval::new(a.z.min(b.z).min(c.z), a.z.max(b.z).max(c.z));
+
+        Self { x, y, z }
+    }
 
     pub fn axis(&self, n: usize) -> Interval {
         match n {
