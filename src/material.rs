@@ -68,6 +68,15 @@ impl Material {
     }
 }
 
+impl Default for Material {
+    fn default() -> Self {
+        let pink = Texture::new_solid_rgb(1., 0., 220./255.);
+        let black = Texture::new_solid_rgb(0., 0., 0.);
+        let checkered = Texture::new_checkered(1., pink, black);
+        Self::Lambertian(checkered)
+    }
+}
+
 impl From<Texture> for Material {
     fn from(value: Texture) -> Self {
         Self::Lambertian(value)

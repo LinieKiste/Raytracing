@@ -21,10 +21,15 @@ pub struct Triangle {
 }
 
 impl Triangle {
-    pub fn new(v0: Point3, v1: Point3, v2: Point3, mat: Material) -> Self {
+    pub fn new(v0: Point3, v1: Point3, v2: Point3, mat: Option<Material>) -> Self {
         let bbox = AABB::from_3_points(v0, v1, v2).pad();
         let n = (v1-v0).cross(&(v2-v0));
         let normal = n.normalize();
+
+        let mat = match mat {
+            None => Material::default(),
+            Some(mat) => mat
+        };
 
         Triangle { v0, v1, v2, normal, mat, bbox }
     }

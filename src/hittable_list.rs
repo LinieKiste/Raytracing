@@ -17,7 +17,7 @@ use crate::{
         Dielectric,
         Metal
     },
-    aabb::AABB, quad::Quad, triangle::Triangle, texture::Texture,
+    aabb::AABB, quad::Quad, triangle::Triangle, texture::Texture, obj::Obj,
 };
 
 pub struct HittableList<T: Hittable> {
@@ -126,13 +126,24 @@ impl HittableList<Primitive> {
         self.add(Quad::new(Point3::new(-3., -2., 5.), z_neg_4, y_4, left_red));
         let (t1, t2, t3) = (Point3::new(-2., -2., 0.),
                 Point3::new(2.,-2.,0.), Point3::new(-2.,2.,0.));
-        self.add(Triangle::new(t1, t2, t3, back_green));
+        self.add(Triangle::new(t1, t2, t3, Some(back_green)));
         // self.add(Triangle::new(Point3::new( 3., -2., 1.), z_4, y_4, right_blue));
         self.add(Quad::new(Point3::new(-2.,  3., 1.), x_4, z_4, upper_orange));
         self.add(Quad::new(Point3::new(-2., -3., 5.), x_4, z_neg_4, lower_teal));
 
         cam.fov = 80.0;
         cam.lookfrom = Point3::new(0., 0., 9.);
+        cam.lookat = Point3::new(0., 0., 0.);
+    }
+    pub fn triangle_mesh(&mut self, cam: &mut Camera) {
+        let mesh = Obj::new("assets/teapot.obj").expect("Failed to load cube!");
+
+        for tri in mesh.triangles {
+            self.add(tri);
+        }
+
+        cam.fov = 80.0;
+        cam.lookfrom = Point3::new(0., 3., 5.);
         cam.lookat = Point3::new(0., 0., 0.);
     }
 }

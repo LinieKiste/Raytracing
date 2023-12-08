@@ -12,6 +12,7 @@ rand = "0.8"
 sdl2 = "0.35"
 anyhow = "1.0"
 nalgebra = { version = "0.32", features = ["rand"] }
+tempdir = "0.3"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
