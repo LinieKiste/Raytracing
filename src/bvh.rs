@@ -11,6 +11,7 @@ use crate::{
     aabb::AABB,
 };
 
+#[derive(Clone)]
 pub enum BvhNode {
     Leaf(Primitive),
     Node {

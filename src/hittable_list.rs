@@ -15,9 +15,10 @@ use crate::{
         self,
         Lambertian,
         Dielectric,
-        Metal
+        Metal,
+        Emissive,
     },
-    aabb::AABB, quad::Quad, triangle::Triangle, texture::Texture, obj::Obj,
+    aabb::AABB, quad::Quad, triangle::Mesh, texture::Texture,
 };
 
 pub struct HittableList<T: Hittable> {
@@ -126,7 +127,7 @@ impl HittableList<Primitive> {
         self.add(Quad::new(Point3::new(-3., -2., 5.), z_neg_4, y_4, left_red));
         let (t1, t2, t3) = (Point3::new(-2., -2., 0.),
                 Point3::new(2.,-2.,0.), Point3::new(-2.,2.,0.));
-        self.add(Triangle::new(t1, t2, t3, Some(back_green)));
+        self.add(Mesh::new_triangle(t1, t2, t3, Some(back_green)));
         // self.add(Triangle::new(Point3::new( 3., -2., 1.), z_4, y_4, right_blue));
         self.add(Quad::new(Point3::new(-2.,  3., 1.), x_4, z_4, upper_orange));
         self.add(Quad::new(Point3::new(-2., -3., 5.), x_4, z_neg_4, lower_teal));
@@ -136,15 +137,40 @@ impl HittableList<Primitive> {
         cam.lookat = Point3::new(0., 0., 0.);
     }
     pub fn triangle_mesh(&mut self, cam: &mut Camera) {
-        let mesh = Obj::new("assets/teapot.obj").expect("Failed to load cube!");
+        let blue = Metal(Color::new(0.2, 0.4, 0.9), 0.2);
+        let emissive = Emissive(Color::new(0.7, 0.7, 0.7), 10.);
+        let mesh = Mesh::load("assets/teapot.obj").unwrap()
+            .with_material(emissive);
 
-        for tri in mesh.triangles {
-            self.add(tri);
-        }
+        let gray = Texture::new_solid_rgb(0.7, 0.7, 0.7);
+        let boundary = Mesh::load("assets/box.obj").unwrap()
+            .with_material(gray.into());
+
+        self.add(mesh);
+        self.add(boundary);
 
         cam.fov = 80.0;
         cam.lookfrom = Point3::new(0., 3., 5.);
-        cam.lookat = Point3::new(0., 0., 0.);
+        cam.lookat = Point3::new(0., 1., 0.);
+    }
+    pub fn cornell_box(&mut self, cam: &mut Camera) {
+        let red: Material = Texture::new_solid_rgb(0.65, 0.05, 0.05).into();
+        let white: Material = Texture::new_solid_rgb(0.73, 0.73, 0.73).into();
+        let green: Material = Texture::new_solid_rgb(0.12, 0.45, 0.15).into();
+        let light = Emissive(Color::new(1., 1., 1.), 15.);
+
+        let fst_555 = Vec3::new(555., 0., 0.);
+        let snd_555 = Vec3::new(0., 555., 0.);
+        let third_555 = Vec3::new(0., 555., 0.);
+        self.add(Quad::new(fst_555, snd_555, third_555, green));
+        self.add(Quad::new(Vec3::zeros(), snd_555, third_555, red));
+        self.add(Quad::new(Vec3::new(343., 554., 332.), Vec3::new(-130., 0., 0.),
+            Vec3::new(0., 0., -105.), light));
+
+        cam.fov = 40.;
+        cam.lookfrom = Point3::new(278.0, 278.0, -800.0);
+        cam.lookat = Point3::new(278., 278., 0.0);
+        cam.background = Color::new(0.1, 0.1, 0.1);
     }
 }
 
@@ -165,6 +191,17 @@ impl<T: Hittable> Hittable for HittableList<T> {
 
     fn bounding_box(&self) -> AABB {
         self.bbox
+    }
+}
+
+impl<T: Into<Primitive>> From<Vec<T>> for HittableList<Primitive> {
+    fn from(value: Vec<T>) -> Self {
+        let mut list = HittableList::new();
+        for elem in value {
+            list.add(elem);
+        }
+
+        list
     }
 }
 

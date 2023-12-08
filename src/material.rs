@@ -11,7 +11,7 @@ pub enum Material {
     Lambertian(Texture),
     Metal(Color, f32),
     Dielectric(f32),
-
+    Emissive(Color, f32),
 }
 
 impl Material {
@@ -21,6 +21,8 @@ impl Material {
             Lambertian(texture) => Self::scatter_lambertian(texture, rec),
             Metal(color, fuzz) => Self::scatter_metal(color, fuzz, r_in, rec),
             Dielectric(ir) => Self::scatter_dielectric(ir, r_in, rec),
+            Emissive(color, brightness) =>
+                Self::scatter_emissive(color, brightness, r_in, rec),
         }
     }
 
@@ -58,6 +60,9 @@ impl Material {
         };
 
         (attenuation, Some(Ray::new(rec.p, direction)))
+    }
+    fn scatter_emissive(albedo: &Color, brightness: &f32, r_in: &Ray, rec: &HitRecord) -> (Color, Option<Ray>) {
+        (*brightness*albedo, None)
     }
 
     // Schlick's approximation

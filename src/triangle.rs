@@ -1,13 +1,74 @@
+use std::sync::Arc;
+use anyhow::Result;
 use crate::{
     hittable::{Hittable, HitRecord},
     interval::Interval,
     ray::Ray,
     material::Material,
     aabb::AABB,
-    vec3::{Vec3, Point3},
+    vec3::{Vec3, Point3}, obj::Obj, BvhNode,
 };
 
 const BACKFACE_CULLING: bool = true;
+
+#[derive(Clone)]
+pub struct Mesh {
+    triangles: Arc<BvhNode>,
+    bbox: AABB,
+    mat: Material,
+}
+
+impl<'a> Mesh {
+    pub fn load(filepath: &str) -> Result<Mesh> {
+        let obj = Obj::new(filepath)?;
+
+        let mut triangles = vec!();
+        let mut bbox = AABB::default();
+        for face in &obj.faces {
+            let [i0, i1, i2] = face.indices;
+            let v0 = obj.vertices[i0 as usize];
+            let v1 = obj.vertices[i1 as usize];
+            let v2 = obj.vertices[i2 as usize];
+
+            let triangle = Triangle::new(v0, v1, v2);
+            bbox = AABB::from_aabbs(&triangle.bounding_box(), &bbox);
+            triangles.push(triangle);
+        }
+        let bvh = BvhNode::new(&mut triangles.into());
+        let mat = Material::default();
+
+        Ok(Mesh { triangles: Arc::new(bvh), bbox, mat })
+    }
+
+    pub fn new_triangle(t1: Point3, t2: Point3, t3: Point3, mat: Option<Material>) -> Self{
+        let tri = Triangle::new(t1, t2, t3);
+        let bbox = tri.bounding_box();
+        let triangles = Arc::new(BvhNode::new(&mut vec![tri].into()));
+        let mat = match mat {
+            Some(mat) => mat,
+            None => Material::default(),
+        };
+
+        Mesh { triangles , bbox, mat }
+    }
+
+    pub fn with_material(self, mat: Material) -> Self {
+        let mut new = self;
+        new.mat = mat;
+        new
+    }
+}
+
+impl<'a> Hittable for Mesh {
+    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
+        self.triangles.hit(r, ray_t)
+            .map(|h| h.with_material(self.mat.clone()))
+    }
+
+    fn bounding_box(&self) -> AABB {
+        self.bbox
+    }
+}
 
 #[derive(Clone)]
 pub struct Triangle {
@@ -16,22 +77,16 @@ pub struct Triangle {
     v2: Point3,
     normal: Vec3,
 
-    mat: Material,
-    bbox: AABB
+    bbox: AABB,
 }
 
 impl Triangle {
-    pub fn new(v0: Point3, v1: Point3, v2: Point3, mat: Option<Material>) -> Self {
+    fn new(v0: Point3, v1: Point3, v2: Point3) -> Triangle {
         let bbox = AABB::from_3_points(v0, v1, v2).pad();
         let n = (v1-v0).cross(&(v2-v0));
         let normal = n.normalize();
 
-        let mat = match mat {
-            None => Material::default(),
-            Some(mat) => mat
-        };
-
-        Triangle { v0, v1, v2, normal, mat, bbox }
+        Triangle { v0, v1, v2, normal, bbox }
     }
 }
 
@@ -61,9 +116,8 @@ impl Hittable for Triangle {
         if !ray_t.contains(t) { return None }
 
         let intersection = r.at(t);
-        // let planar_hitpt_vector = intersection - self.v0;
 
-        Some(HitRecord::new(intersection, self.normal, t, r, self.mat.clone(), (u, v)))
+        Some(HitRecord::new(intersection, self.normal, t, r, None, (u, v)))
     }
 
     fn bounding_box(&self) -> AABB { self.bbox }

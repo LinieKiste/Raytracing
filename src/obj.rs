@@ -1,16 +1,18 @@
 use std::{fs::read_to_string, num::ParseFloatError};
-use crate::{triangle::Triangle, vec3::Point3};
+use crate::{
+    vec3::Point3,
+    material::Material::{self},
+};
 use anyhow::{Result, bail};
 
 #[derive(Debug, PartialEq)]
-struct Face {
-    indices: [i32; 3],
+pub struct Face {
+    pub indices: [i32; 3],
 }
 
 pub struct Obj {
-    faces: Vec<Face>,
-    vertices: Vec<Point3>,
-    pub triangles: Vec<Triangle>,
+    pub faces: Vec<Face>,
+    pub vertices: Vec<Point3>,
 }
 
 impl Obj {
@@ -43,18 +45,7 @@ impl Obj {
             }
         }
 
-        let mut triangles = vec!();
-        for face in &faces {
-            let [i0, i1, i2] = face.indices;
-            let v0 = vertices[i0 as usize];
-            let v1 = vertices[i1 as usize];
-            let v2 = vertices[i2 as usize];
-
-            let triangle = Triangle::new(v0, v1, v2, None);
-            triangles.push(triangle);
-        }
-
-        Ok(Obj{ faces, vertices, triangles })
+        Ok(Obj{ faces, vertices })
     }
 }
 

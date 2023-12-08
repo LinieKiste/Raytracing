@@ -8,6 +8,7 @@ use sdl2::{
     render::{WindowCanvas, Texture},
 };
 use crate::color::{write_color, linear_to_gamma};
+use crate::material::Material;
 use std::f32::INFINITY;
 use image::{ImageBuffer, RgbImage};
 use rand::Rng;
@@ -33,6 +34,7 @@ pub struct Camera {
     pub lookfrom: Point3,
     pub lookat: Point3,
     pub vup: Vec3,
+    pub background: Color,
 
     center: Point3,
     pixel00_loc: Point3,
@@ -58,13 +60,14 @@ impl Camera {
         let vup      =   Vec3::new(0.,1.,0.);
 
         let imgbuf: RgbImage = ImageBuffer::new(image_width, image_height);
+        let background = Color::new(0.7, 0.8, 1.0);
 
         Camera {
             aspect_ratio, image_width,
             image_height,
             samples_per_pixel,
             max_bounces, fov, lookfrom, lookat,
-            vup, imgbuf, ..Default::default()
+            vup, imgbuf, background, ..Default::default()
         }
     }
     
@@ -135,7 +138,7 @@ impl Camera {
                 let mut pixel_color = (0..self.samples_per_pixel).into_iter()
                     .map(|_| {
                         let r = self.get_ray(i,j);
-                        ray_color(&r, self.max_bounces, world)
+                        self.ray_color(&r, self.max_bounces, world)
                     })
                 .sum::<Vec3>();
                 pixel_color /= self.samples_per_pixel as f32;
@@ -161,7 +164,7 @@ impl Camera {
                         let mut pixel_color = (0..self.samples_per_pixel).into_iter()
                             .map(|_| {
                                 let r = self.get_ray(i,j);
-                                ray_color(&r, self.max_bounces, world)
+                                self.ray_color(&r, self.max_bounces, world)
                             })
                         .sum::<Vec3>();
                         pixel_color /= self.samples_per_pixel as f32;
@@ -235,23 +238,26 @@ impl Camera {
 
         (px * self.pixel_delta_u) + (py * self.pixel_delta_v)
     }
-}
 
-fn ray_color<T: Hittable + Sync>(r: &Ray, depth: u32, world: &T) -> Color {
-    // If the ray bounce limit has been exceeded, we return black
-    if depth == 0 { return Color::new(0.,0.,0.) }
+    fn ray_color<T: Hittable + Sync>(&self, r: &Ray, depth: u32, world: &T) -> Color {
+        // If the ray bounce limit has been exceeded, we return black
+        if depth == 0 { return Color::new(0.,0.,0.) }
 
-    if let Some(hit) = world.hit(r, Interval::new(0.001, INFINITY)) {
-        if let (attenuation, Some(scattered)) = hit.material.scatter(r, &hit) {
-            return attenuation.component_mul(&ray_color(&scattered, depth-1, world));
+        if let Some(hit) = world.hit(r, Interval::new(0.001, INFINITY)) {
+            let default = Material::default();
+            let material = match hit.material {
+                Some(ref mat) => mat,
+                None => &default,
+            };
+
+            return match material.scatter(r, &hit) {
+                (attenuation, Some(scattered)) =>
+                    attenuation.component_mul(&self.ray_color(&scattered, depth-1, world)),
+                (attenuation, None) => attenuation,
+            }
         }
 
-        return Color::new(0.,0.,0.);
+        self.background
     }
-
-    let unit_direction = r.direction().normalize();
-    let a = 0.5*(unit_direction.y + 1.0);
-
-    (1.0-a)*Color::new(1.,1.,1.) + a*Color::new(0.5,0.7,1.0)
 }
 
