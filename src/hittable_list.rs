@@ -139,18 +139,28 @@ impl HittableList<Primitive> {
     pub fn triangle_mesh(&mut self, cam: &mut Camera) {
         let blue = Metal(Color::new(0.2, 0.4, 0.9), 0.2);
         let emissive = Emissive(Color::new(0.7, 0.7, 0.7), 10.);
-        let mesh = Mesh::load("assets/teapot.obj").unwrap()
-            .with_material(emissive);
+        let mesh = Mesh::load("assets/teapot.obj").unwrap();
 
         let gray = Texture::new_solid_rgb(0.7, 0.7, 0.7);
-        let boundary = Mesh::load("assets/box.obj").unwrap()
-            .with_material(gray.into());
+        // let boundary = Mesh::load("assets/box.obj").unwrap()
+        //     .with_material(gray.into());
 
         self.add(mesh);
-        self.add(boundary);
+        // self.add(boundary);
 
         cam.fov = 80.0;
         cam.lookfrom = Point3::new(0., 3., 5.);
+        cam.lookat = Point3::new(0., 1., 0.);
+    }
+    pub fn bugatti(&mut self, cam: &mut Camera) {
+        let car = Mesh::load("assets/bugatti/bugatti.obj").unwrap();
+        let bg = Mesh::load("assets/bugatti/background.obj").unwrap();
+
+        self.add(car);
+        self.add(bg);
+
+        cam.fov = 60.0;
+        cam.lookfrom = Point3::new(6., 3., 7.);
         cam.lookat = Point3::new(0., 1., 0.);
     }
     pub fn cornell_box(&mut self, cam: &mut Camera) {
@@ -161,16 +171,20 @@ impl HittableList<Primitive> {
 
         let fst_555 = Vec3::new(555., 0., 0.);
         let snd_555 = Vec3::new(0., 555., 0.);
-        let third_555 = Vec3::new(0., 555., 0.);
+        let third_555 = Vec3::new(0., 0., 555.);
         self.add(Quad::new(fst_555, snd_555, third_555, green));
         self.add(Quad::new(Vec3::zeros(), snd_555, third_555, red));
         self.add(Quad::new(Vec3::new(343., 554., 332.), Vec3::new(-130., 0., 0.),
             Vec3::new(0., 0., -105.), light));
+        self.add(Quad::new(Vec3::zeros(), fst_555, third_555, white.clone())); // bottom quad
+        self.add(Quad::new(Vec3::new(555., 555., 555.), -fst_555, -third_555, white.clone())); // top quad
+        self.add(Quad::new(third_555, fst_555, snd_555, white.clone()));
+        // world.add(make_shared<quad>(point3(0,0,555), vec3(555,0,0), vec3(0,555,0), white));
 
         cam.fov = 40.;
         cam.lookfrom = Point3::new(278.0, 278.0, -800.0);
         cam.lookat = Point3::new(278., 278., 0.0);
-        cam.background = Color::new(0.1, 0.1, 0.1);
+        // cam.background = Color::new(0.0, 0.0, 0.0);
     }
 }
 

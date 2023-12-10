@@ -6,7 +6,7 @@ use crate::{
     texture::Texture,
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Material {
     Lambertian(Texture),
     Metal(Color, f32),
@@ -61,7 +61,7 @@ impl Material {
 
         (attenuation, Some(Ray::new(rec.p, direction)))
     }
-    fn scatter_emissive(albedo: &Color, brightness: &f32, r_in: &Ray, rec: &HitRecord) -> (Color, Option<Ray>) {
+    fn scatter_emissive(albedo: &Color, brightness: &f32, _r_in: &Ray, _rec: &HitRecord) -> (Color, Option<Ray>) {
         (*brightness*albedo, None)
     }
 
@@ -75,16 +75,24 @@ impl Material {
 
 impl Default for Material {
     fn default() -> Self {
+        /*
         let pink = Texture::new_solid_rgb(1., 0., 220./255.);
         let black = Texture::new_solid_rgb(0., 0., 0.);
         let checkered = Texture::new_checkered(1., pink, black);
         Self::Lambertian(checkered)
+        */
+        Texture::new_solid_rgb(0.3, 0.3, 0.3).into()
     }
 }
 
 impl From<Texture> for Material {
     fn from(value: Texture) -> Self {
         Self::Lambertian(value)
+    }
+}
+impl From<Color> for Material {
+    fn from(value: Color) -> Self {
+        Self::Lambertian(Texture::new_solid(value))
     }
 }
 

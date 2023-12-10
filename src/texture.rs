@@ -5,14 +5,14 @@ use crate::{
     vec3::Point3
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CheckerTexture {
     scale: f32,
     even: Texture,
     odd: Texture,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Texture {
     SolidColor(Color),
     CheckerTexture(Arc<CheckerTexture>),
